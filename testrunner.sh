@@ -74,7 +74,7 @@ function execute_leo() {
     local STD_OUT_FILE=$(mktemp)
 
 
-    TIME_STR=$( { TIMEFORMAT='%R, %U'; time leo.opt ${FILE} >${STD_OUT_FILE} 2>${STD_ERR_FILE}; } 2>&1 )
+    TIME_STR=$( { TIMEFORMAT='%R, %U'; time leo.opt -t 60 ${FILE} >${STD_OUT_FILE} 2>${STD_ERR_FILE}; } 2>&1 )
 
     local SZS_STATUS=$(grep -o "^% SZS status [[:alpha:]]*"  ${STD_OUT_FILE})
     
@@ -162,6 +162,7 @@ function testrunner() {
     
     for FILE in ${TPTP_PROBLEMS}; do
         local FILEPATH="${TPTP}/Problems/${FILE}"
+        export TPTP
         local RESULT=$(execute_leo ${FILEPATH})
         local EXPECTED=$(grep "^% Status   : [[:alpha:]]*$"  ${FILEPATH})
         echo "${FILE}, ${RESULT}, ${EXPECTED:13}" >> ${RESULT_DIR}/data.cvs
