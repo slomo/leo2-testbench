@@ -68,22 +68,18 @@ function build_leo() {
 function execute_leo() {
     
     local FILE=$1
-    local TIME_STR=""
 
     local STD_ERR_FILE=$(mktemp)
     local STD_OUT_FILE=$(mktemp)
 
+    local TIME_STR=$({ TIMEFORMAT='%R, %U'; time leo.opt -t ${TIMELIMIT} ${FILE} >${STD_OUT_FILE} 2>${STD_ERR_FILE}; } 2>&1)
 
-    TIME_STR=$( { TIMEFORMAT='%R, %U'; time leo.opt -t 60 ${FILE} >${STD_OUT_FILE} 2>${STD_ERR_FILE}; } 2>&1 )
-
+    # SZS Handling
     local SZS_STATUS=$(grep -o "^% SZS status [[:alpha:]]*"  ${STD_OUT_FILE})
-    
     local SZS_STATUS=${SZS_STATUS#"% SZS status "}
+    [[ -z ${SZS_STATUS} ]] && SZS_STATUS="Error"
 
-
-    [[ -z ${SZS_STATUS} ]] && SZS_STATUS="Invalid"
-
-
+    # cleanup
     rm -rf ${STD_ERR_FILE}. ${STD_OUT_FILE}
     
     echo -n "${TIME_STR}, ${SZS_STATUS}"
@@ -92,57 +88,11 @@ function execute_leo() {
 }
 
 
-function setup_workingdir() {
-
-    local CONFIG_FILE=$1
-    local WORKING_DIR=$2
-
-
-    log "INFO" "reading config file"
-
-    # check input parameter
-    [[ -n $1 ]] || usage 
-    [[ -f $1 ]] || exit_with_reason "Config file \"$1\" unreadable"
-
-    # load and check config
-    source $1
-
-    [[ -n ${GIT_URL} ]] || exit_with_reason "Need GIT_URL to checkout code"
-    [[ -n ${GIT_COMMIT} ]] || exit_with_reason "Need GIT_COMMIT to checkout code"
-    [[ -n ${TPTP} ]] || exit_with_reason "Need TPTP base to include axioms"
-    [[ -n ${TPTP_PROBLEMS} ]] || exit_with_reason "Need FILES to contain at least one test file"
-    [[ -n ${E_PATH} ]] && PATH="${PATH}:${E_PATH}"
-
-
-    pushd ${WORKING_DIR} > /dev/null
-
-    # get and build leo in specified version
-    log "INFO" "installing leo, if needed"
-    fetch_leo_source "${GIT_URL}" "${GIT_COMMIT}" "./leo2"
-
-    if ${NEEDS_BUILD}; then build_leo "./leo2"; fi
-
-    PATH="${PATH}:./leo2/bin"
-
-
-    # check if all provers are ready
-    which leo.opt > /dev/null || exit_with_reason "Leo binary not found"
-    which eprover > /dev/null || exit_with_reason "E binary not found"
-
-    popd > /dev/null
-
-}
-
 function testrunner() {
 
     local CONFIG_FILE=$1
-    local SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-    setup_workingdir ${CONFIG_FILE} ${SCRIPT_DIR}
-
-    pushd ${SCRIPT_DIR} > /dev/null
-
-    local RESULT_DIR="${SCRIPT_DIR}/results/$(date +%Y%m%d_%H%M%S)"
+    local RESULT_DIR="${PWD}/results/$(date +%Y%m%d_%H%M%S)"
     mkdir -p ${RESULT_DIR}
 
     # collect infos
@@ -174,16 +124,56 @@ function testrunner() {
     [[ ! -a  ${LATEST_LINK} || -L ${LATEST_LINK} ]] && ln -sfT ${RESULT_DIR} ${LATEST_LINK}
 
     log "INFO" "Sucessfull terminating"
+}
+
+function setup_workingdir() {
+
+    local CONFIG_FILE=$1
+    local WORKING_DIR=$2
+    local COMMAND=$3
+
+    log "INFO" "reading config file"
+
+
+    # load and check config
+    source $1
+
+    [[ -n ${GIT_URL} ]] || exit_with_reason "Need GIT_URL to checkout code"
+    [[ -n ${GIT_COMMIT} ]] || exit_with_reason "Need GIT_COMMIT to checkout code"
+    [[ -n ${TPTP} ]] || exit_with_reason "Need TPTP base to include axioms"
+    [[ -n ${TPTP_PROBLEMS} ]] || exit_with_reason "Need FILES to contain at least one test file"
+    [[ -n ${E_PATH} ]] && PATH="${PATH}:${E_PATH}"
+    [[ -n ${TIMELIMIT} ]] || TIMELIMIT=30
+
+    pushd ${WORKING_DIR} > /dev/null
+
+    # get and build leo in specified version
+    log "INFO" "installing leo, if needed"
+    fetch_leo_source "${GIT_URL}" "${GIT_COMMIT}" "./leo2"
+
+    if ${NEEDS_BUILD}; then build_leo "./leo2"; fi
+
+    PATH="${PATH}:./leo2/bin"
+
+    # check if all provers are ready
+    which leo.opt > /dev/null || exit_with_reason "Leo binary not found"
+    which eprover > /dev/null || exit_with_reason "E binary not found"
+
+    ${COMMAND}
+
     popd > /dev/null
+
 }
 
 
+# check input parameter
+[[ -n $1 ]] || usage
+[[ -f $1 ]] || exit_with_reason "Config file \"$1\" unreadable"
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 if [[  $2 = shell ]]; then 
-    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-    setup_workingdir $1 ${SCRIPT_DIR}
-    pushd ${SCRIPT_DIR}
-    bash     
-    popd
+    setup_workingdir $1 ${SCRIPT_DIR} bash
 else
-    testrunner $@
+    setup_workingdir $1 ${SCRIPT_DIR} "testrunner $1"
 fi
