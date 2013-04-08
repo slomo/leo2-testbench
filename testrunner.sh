@@ -68,11 +68,12 @@ function build_leo() {
 function execute_leo() {
     
     local FILE=$1
+    local TIMELIMIT=$2
 
     local STD_ERR_FILE=$(mktemp)
     local STD_OUT_FILE=$(mktemp)
 
-    local TIME_STR=$({ TIMEFORMAT='%R, %U'; time leo.opt -t ${TIMELIMIT} ${FILE} >${STD_OUT_FILE} 2>${STD_ERR_FILE}; } 2>&1)
+    local TIME_STR=$({ TIMEFORMAT='%R, %U'; time timeout $((TIMELIMIT + 5)) leo.opt -t ${TIMELIMIT} ${FILE} >${STD_OUT_FILE} 2>${STD_ERR_FILE}; } 2>&1)
 
     # SZS Handling
     local SZS_STATUS=$(grep -o "^% SZS status [[:alpha:]]*"  ${STD_OUT_FILE})
@@ -113,7 +114,7 @@ function testrunner() {
     for FILE in ${TPTP_PROBLEMS}; do
         local FILEPATH="${TPTP}/Problems/${FILE}"
         export TPTP
-        local RESULT=$(execute_leo ${FILEPATH})
+        local RESULT=$(execute_leo ${FILEPATH} ${TIMELIMIT})
         local EXPECTED=$(grep "^% Status   : [[:alpha:]]*$"  ${FILEPATH})
         echo "${FILE}, ${RESULT}, ${EXPECTED:13}" >> ${RESULT_DIR}/data.cvs
     done
