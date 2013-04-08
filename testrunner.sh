@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# author: Yves Müller (uves@spline.de)
+# dependencies: bash, grep and timeout (part of coreutils)
+
+
 LOGLEVEL="INFO"
 
 # helper
