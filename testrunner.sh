@@ -162,7 +162,7 @@ function setup_workingdir() {
     PATH="${PATH}:./leo2/bin"
 
     # check if all provers are ready
-    which leo.opt > /dev/null || exit_with_reason "Leo binary not found"
+    which leo > /dev/null || exit_with_reason "Leo binary not found"
     which eprover > /dev/null || exit_with_reason "E binary not found"
 
     ${COMMAND}
