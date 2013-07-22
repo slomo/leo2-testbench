@@ -63,21 +63,20 @@ function build_leo() {
     local LEO_LOCATION=$1
 
     pushd "${LEO_LOCATION}/src" > /dev/null || exit_with_reason "Unable to find leo src dir in \"${LEO_LOCATION}\""
-    
     make clean opt || exit_with_reason "Failed to build leo in \"${LEO_LOCATION}\""
 
     popd > /dev/null
-} 
+}
 
 function execute_leo() {
-    
     local FILE=$1
     local TIMELIMIT=$2
+    local LEO_OPTS=$3
 
     local STD_ERR_FILE=$(mktemp)
     local STD_OUT_FILE=$(mktemp)
 
-    local TIME_STR=$({ TIMEFORMAT='%R, %U'; time timeout $((TIMELIMIT + 5)) leo.opt -t ${TIMELIMIT} ${FILE} >${STD_OUT_FILE} 2>${STD_ERR_FILE}; } 2>&1)
+    local TIME_STR=$({ TIMEFORMAT='%R, %U'; time timeout $((TIMELIMIT + 5)) leo -t ${TIMELIMT} ${LEO_OPTS} ${FILE} >${STD_OUT_FILE} 2>${STD_ERR_FILE}; } 2>&1)
 
     # SZS Handling
     local SZS_STATUS=$(grep -o "^% SZS status [[:alpha:]]*"  ${STD_OUT_FILE})
