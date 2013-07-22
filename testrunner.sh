@@ -85,10 +85,7 @@ function execute_leo() {
 
     # cleanup
     rm -rf ${STD_ERR_FILE}. ${STD_OUT_FILE}
-    
     echo -n "${TIME_STR}, ${SZS_STATUS}"
-
-
 }
 
 
@@ -106,24 +103,29 @@ function testrunner() {
 
     echo "EPROVER_VERSION=\"$(eprover --version)\"" > ${RESULT_DIR}/info.sh
     echo "LEO_VERSION=\"$(leo.opt --version)\"" >> ${RESULT_DIR}/info.sh
-    
+
     # run leo on all files
     log "INFO" "executing tests"
+
+    # create currentRun link
+    CURRENT_LINK=${SCRIPT_DIR}/results/currentRun
+    [[ ! -a ${CURRENT_LINK} || -L ${LATEST_LINK} ]] && -sfT ${RESULT_DIR} ${CURRENT_LINK}
 
     # write header for csv
     echo "problem, runtime, usertime, result, expectedResult" > ${RESULT_DIR}/data.cvs
 
-    
+
     for FILE in ${TPTP_PROBLEMS}; do
         local FILEPATH="${TPTP}/Problems/${FILE}"
         export TPTP
-        local RESULT=$(execute_leo ${FILEPATH} ${TIMELIMIT})
+        local RESULT=$(execute_leo ${FILEPATH} ${TIMELIMIT} ${LEO_OPTS})
         local EXPECTED=$(grep "^% Status   : [[:alpha:]]*$"  ${FILEPATH})
         echo "${FILE}, ${RESULT}, ${EXPECTED:13}" >> ${RESULT_DIR}/data.cvs
     done
 
 
     # create lastRun symlink
+    [[ ! -a ${CURRENT_LINK} || -L {CURRENT_LINK} ]] && rm ${CURRENT_LINK}
     LATEST_LINK=${SCRIPT_DIR}/results/lastRun
     [[ ! -a  ${LATEST_LINK} || -L ${LATEST_LINK} ]] && ln -sfT ${RESULT_DIR} ${LATEST_LINK}
 
@@ -176,7 +178,7 @@ function setup_workingdir() {
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-if [[  $2 = shell ]]; then 
+if [[  $2 = shell ]]; then
     setup_workingdir $1 ${SCRIPT_DIR} bash
 else
     setup_workingdir $1 ${SCRIPT_DIR} "testrunner $1"
