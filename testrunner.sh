@@ -102,14 +102,14 @@ function testrunner() {
     cp ${CONFIG_FILE} ${RESULT_DIR}
 
     echo "EPROVER_VERSION=\"$(eprover --version)\"" > ${RESULT_DIR}/info.sh
-    echo "LEO_VERSION=\"$(leo.opt --version)\"" >> ${RESULT_DIR}/info.sh
+    echo "LEO_VERSION=\"$(leo --version)\"" >> ${RESULT_DIR}/info.sh
 
     # run leo on all files
     log "INFO" "executing tests"
 
     # create currentRun link
     CURRENT_LINK=${SCRIPT_DIR}/results/currentRun
-    [[ ! -a ${CURRENT_LINK} || -L ${LATEST_LINK} ]] && -sfT ${RESULT_DIR} ${CURRENT_LINK}
+    [[ ! -a ${CURRENT_LINK} || -L ${LATEST_LINK} ]] && ln -sfT ${RESULT_DIR} ${CURRENT_LINK}
 
     # write header for csv
     echo "problem, runtime, usertime, result, expectedResult" > ${RESULT_DIR}/data.cvs
@@ -124,8 +124,8 @@ function testrunner() {
     done
 
 
-    # create lastRun symlink
-    [[ ! -a ${CURRENT_LINK} || -L {CURRENT_LINK} ]] && rm ${CURRENT_LINK}
+    # remove currentRun and create lastRun symlink
+    [[ -L {CURRENT_LINK} ]] && rm ${CURRENT_LINK}
     LATEST_LINK=${SCRIPT_DIR}/results/lastRun
     [[ ! -a  ${LATEST_LINK} || -L ${LATEST_LINK} ]] && ln -sfT ${RESULT_DIR} ${LATEST_LINK}
 
