@@ -52,7 +52,7 @@ function fetch_leo_source() {
     pushd ${LEO_LOCATION} > /dev/null
 
     if [[  $(git rev-parse HEAD) != ${GIT_COMMIT} ]]; then
-        git checkout -f ${GIT_COMMIT}
+        git checkout -f ${GIT_COMMIT} || exit_with_reason "Unable to checkout leo source"
         NEEDS_BUILD=true
     fi
 
