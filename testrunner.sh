@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # author: Yves Müller (uves@spline.de)
-# dependencies: bash, grep and timeout (part of coreutils)
+# dependencies: bash, grep, mktemp and timeout (part of coreutils)
 
 
 LOGLEVEL="INFO"
@@ -76,10 +76,13 @@ function execute_leo() {
     local STD_ERR_FILE=$(mktemp)
     local STD_OUT_FILE=$(mktemp)
 
-    local TIME_STR=$({ TIMEFORMAT='%R, %U'; time timeout $((TIMELIMIT + 5)) leo -t ${TIMELIMT} ${LEO_OPTS} ${FILE} >${STD_OUT_FILE} 2>${STD_ERR_FILE}; } 2>&1)
+    local TIME_STR=$({ TIMEFORMAT='%R, %U'; time timeout $((TIMELIMIT + 5)) leo -t ${TIMELIMIT} ${LEO_OPTS} ${FILE} >${STD_OUT_FILE} 2>${STD_ERR_FILE}; } 2>&1)
+
 
     # SZS Handling
-    local SZS_STATUS=$(grep -o "^% SZS status [[:alpha:]]*"  ${STD_OUT_FILE})
+    local SZS_STATUS=$(grep -m 1 -o "^% SZS status [[:alpha:]]*"  ${STD_OUT_FILE}
+)
+
     local SZS_STATUS=${SZS_STATUS#"% SZS status "}
     [[ -z ${SZS_STATUS} ]] && SZS_STATUS="Error"
 
@@ -109,16 +112,17 @@ function testrunner() {
 
     # create currentRun link
     CURRENT_LINK=${SCRIPT_DIR}/results/currentRun
-    [[ ! -a ${CURRENT_LINK} || -L ${LATEST_LINK} ]] && ln -sfT ${RESULT_DIR} ${CURRENT_LINK}
+    [[ ! -a ${CURRENT_LINK} || -L ${CURRENT_LINK} ]] && ln -sfT ${RESULT_DIR} ${CURRENT_LINK}
 
     # write header for csv
     echo "problem, runtime, usertime, result, expectedResult" > ${RESULT_DIR}/data.cvs
 
 
     for FILE in ${TPTP_PROBLEMS}; do
+        log "INFO" "solving ${FILE}"
         local FILEPATH="${TPTP}/Problems/${FILE}"
         export TPTP
-        local RESULT=$(execute_leo ${FILEPATH} ${TIMELIMIT} ${LEO_OPTS})
+        local RESULT=$(execute_leo ${FILEPATH} ${TIMELIMIT} "${LEO_OPTS}")
         local EXPECTED=$(grep "^% Status   : [[:alpha:]]*$"  ${FILEPATH})
         echo "${FILE}, ${RESULT}, ${EXPECTED:13}" >> ${RESULT_DIR}/data.cvs
     done
