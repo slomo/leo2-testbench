@@ -5,9 +5,11 @@ include $(PROFILE)
 #result/%: TPTP-v5.5.0 E-1.8 leo-git-master
 #	mkdir -p $@
 
-TPTP-%:
-	wget "http://www.cs.miami.edu/~tptp/TPTP/Distribution/$@.tgz"
-	tar -xmf "$@.tgz"
+TPTP-%.tgz:
+	wget "http://www.cs.miami.edu/~tptp/TPTP/Distribution/$@"
+
+TPTP-%: TPTP-%.tgz
+	tar -xmf "$^"
 
 E-1.8.tgz:
 	wget "http://www4.in.tum.de/~schulz/WORK/E_DOWNLOAD/V_1.8/E.tgz" -O "$@"
