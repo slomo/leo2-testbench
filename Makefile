@@ -5,12 +5,14 @@ include $(PROFILE)
 #result/%: TPTP-v5.5.0 E-1.8 leo-git-master
 #	mkdir -p $@
 
+# TPTP
 TPTP-%.tgz:
 	wget "http://www.cs.miami.edu/~tptp/TPTP/Distribution/$@"
 
 TPTP-%: TPTP-%.tgz
 	tar -xmf "$^"
 
+# E-Prover
 E-1.8.tgz:
 	wget "http://www4.in.tum.de/~schulz/WORK/E_DOWNLOAD/V_1.8/E.tgz" -O "$@"
 
@@ -20,7 +22,14 @@ E-%: E-%.tgz
 	cd $@ && ./configure
 	cd $@ && make
 
+# SPASS-Prover
+SPASS-3.5.tgz:
+	wget http://www.spass-prover.org/download/binaries/spass35pclinux64.tgz -O "$@"
 
+SPASS-%: SPASS-3.5.tgz
+	tar -xmf $^
+
+# LEO-Prover (from git)
 leo-git:
 	git clone ${LEO_REPO} $@ --bare
 
