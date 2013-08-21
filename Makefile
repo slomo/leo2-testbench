@@ -40,5 +40,13 @@ leo-git-%: leo-git
 	cd $^ && git --work-tree=../$@ checkout $* -- .
 	cd $@/src && make opt
 
+# LEO-Prover (from website)
+leo-release-%.tgz:
+	wget "http://page.mi.fu-berlin.de/cbenzmueller/leo/leo2_v$*.tgz" -O $@
+
+leo-release-%: leo-release-%.tgz
+	mkdir $@
+	tar -xmf $^ -C $@ --strip-components 1
+	cd $@/src && make opt
 
 leo-git-%/bin/leo: leo-git-%
