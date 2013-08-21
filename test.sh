@@ -77,7 +77,7 @@ for FILE in ${TPTP_PROBLEMS}; do
 done
 
 cat > ${PROFILE} <<EOF
-export PATH := leo-git-${GIT_COMMIT}/bin:\$(PATH)
+export PATH := leo-${LEO_VERSION}/bin:\$(PATH)
 export TPTP := TPTP-v${TPTP_VERSION}
 
 ${RESULT_PREFIX}/summary.csv: ${TARGETS}
@@ -86,7 +86,7 @@ ${RESULT_PREFIX}/summary.csv: ${TARGETS}
 	rm ${CURRENT_LINK}
 
 
-${RESULT_PREFIX}/%.p.csv: TPTP-v${TPTP_VERSION} ${FO_PROVERS}
+${RESULT_PREFIX}/%.p.csv: TPTP-v${TPTP_VERSION} ${FO_PROVERS} leo-${LEO_VERSION}
 	mkdir -p \$(dir \$@)
 	./leo-wrapper.sh \$(TPTP)/Problems/\$*.p ${LEO_OPTS} > \$@
 EOF
