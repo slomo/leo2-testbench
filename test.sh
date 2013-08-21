@@ -27,14 +27,16 @@ function load_config() {
     [[ -n ${FO_PROVERS} ]] || FO_PROVERS="E-1.8"
     [[ -n ${TIMELIMIT} ]] || TIMELIMIT=30
     [[ -n ${LEO_OPTS} ]] || LEO_OPTS="-f e"
-    [[ -n ${GIT_COMMIT} ]] || exit_with_reason "Need GIT_COMMIT to checkout code"
-    [[ -n ${TPTP_PROBLEMS} ]] || exit_with_reason "Need FILES to contain at least one test file"
+    [[ -n ${LEO_VERSION} ]] || exit_with_reason "Need LEO_VERSION to test"
+    [[ -n ${TPTP_PROBLEMS} ]] || exit_with_reason "Need TPTP_PROBLEMS to contain at least one test file"
     [[ -n ${APPEND_OPTS} ]] || APPEND_OPTS=""
 }
 
 function generate_opts() {
     LEO_OPTS=""
+    CSV="${LEO_VERSION},${TPTP_VERSION}"
     for prover in "${FO_PROVERS[@]}"; do
+        CSV="${CSV},${prover}"
         case ${prover} in
             E-*)
                 LEO_OPTS="${LEO_OPTS} -f e --atp e=${prover}/PROVER/eprover"
@@ -65,7 +67,8 @@ PROFILE="${RESULT_DIR}/profile"
 mkdir -p ${RESULT_DIR}
 ln ${RESULT_DIR} -s ${CURRENT_LINK}
 ln ${RESULT_DIR} -sf ${LAST_LINK}
-cp ${CONFIG_FILE} ${RESULT_DIR}/config
+cp ${CONFIG_FILE} ${RESULT_DIR}/config.sh
+echo ${CSV} > ${RESULT_DIR}/config.csv
 
 # generate problem list
 TARGETS=""
