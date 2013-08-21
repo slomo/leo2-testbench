@@ -58,7 +58,7 @@ fi
 load_config $1
 generate_opts
 
-RESULT_PREFIX="results/$(date +%Y%m%d_%H%M%S)"
+RESULT_PREFIX="run/$(date +%Y%m%d_%H%M%S)"
 RESULT_DIR="${PWD}/${RESULT_PREFIX}"
 PROFILE="${RESULT_DIR}/profile"
 
