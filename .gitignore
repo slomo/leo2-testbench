@@ -1,2 +1,5 @@
-results/
-leo2/
+run
+leo-*
+E-*
+SPASS-*
+TPTP-*
