@@ -35,18 +35,26 @@ function load_config() {
 function generate_opts() {
     LEO_OPTS=""
     CSV="${LEO_VERSION},${TPTP_VERSION}"
+    PROVERS=()
     for prover in "${FO_PROVERS[@]}"; do
         CSV="${CSV},${prover}"
         case ${prover} in
             E-*)
-                LEO_OPTS="${LEO_OPTS} -f e --atp e=${prover}/PROVER/eprover"
+                PROVERS+=("e")
+                LEO_OPTS="${LEO_OPTS} --atp e=${prover}/PROVER/eprover"
                 ;;
             SPASS-*)
-                LEO_OPTS=" ${LEO_OPTS} -f spass --atp spass=${prover}/SPASS"
+                PROVERS+=("spass")
+                LEO_OPTS=" ${LEO_OPTS} --atp spass=${prover}/SPASS"
                 ;;
         esac
     done
-    LEO_OPTS="${LEO_OPTS} -t ${TIMELIMIT} ${APPEND_OPTS}"
+    SAVE_IFS=$IFS
+    IFS=","
+    PROVERS="${PROVERS[*]}"
+    IFS=$SAVE_IFS
+
+    LEO_OPTS="${LEO_OPTS} -f ${PROVERS} -t ${TIMELIMIT} ${APPEND_OPTS}"
 }
 
 # continue if last run not done
