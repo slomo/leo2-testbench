@@ -1,7 +1,7 @@
 #!/bin/bash
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-CURRENT_LINK=${SCRIPT_DIR}/results/current
-LAST_LINK=${SCRIPT_DIR}/results/last
+CURRENT_LINK=${SCRIPT_DIR}/run/current
+LAST_LINK=${SCRIPT_DIR}/run/last
 
 
 function exit_with_reason() {
@@ -53,7 +53,6 @@ function generate_opts() {
     IFS=","
     PROVERS="${PROVERS[*]}"
     IFS=$SAVE_IFS
-
     LEO_OPTS="${LEO_OPTS} -f ${PROVERS} -t ${TIMELIMIT} ${APPEND_OPTS}"
 }
 

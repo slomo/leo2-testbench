@@ -37,6 +37,7 @@ leo-git:
 
 leo-git-%: leo-git
 	mkdir $@
+	cd $^ && git fetch --tags --all
 	cd $^ && git --work-tree=../$@ checkout $* -- .
 	cd $@/src && make opt
 
