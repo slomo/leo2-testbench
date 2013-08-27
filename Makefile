@@ -12,7 +12,7 @@ TPTP-%.tgz:
 # unpack TPTP and build index over higher order problems
 TPTP-%: TPTP-%.tgz
 	tar -xmf "$^"
-	find $@ /Problems -iname "*\^?.p" -exec sh -c 'echo -n "$(basename {}), ";  sed -n "s/^% Status   : \(\w\+\)$/\1/p" {}' \; > $@/higherOrderStatus.csv
+	find $@/Problems -iname "*\^?.p" -exec sh -c 'echo -n "$(basename {}), ";  sed -n "s/^% Status   : \(\w\+\)/\1/p" {}' \; > $@/higherOrderStatus.csv
 
 # E-Prover
 E-1.8.tgz:
