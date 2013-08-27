@@ -21,14 +21,16 @@ E-1.8.tgz:
 E-%: E-%.tgz
 	tar -xmf $^
 	mv E $@
-	cd $@ && ./configure
-	cd $@ && make
+
+E-%/PROVER/eprover: E-%
+	cd E-$* && ./configure
+	cd E-$* && make
 
 # SPASS-Prover
 SPASS-3.5.tgz:
 	wget http://www.spass-prover.org/download/binaries/spass35pclinux64.tgz -O "$@"
 
-SPASS-%: SPASS-3.5.tgz
+SPASS-%/SPASS: SPASS-%.tgz
 	tar -xmf $^
 
 # LEO-Prover (from git)
@@ -39,7 +41,6 @@ leo-git-%: leo-git
 	mkdir $@
 	cd $^ && git fetch --tags --all
 	cd $^ && git --work-tree=../$@ checkout $* -- .
-	cd $@/src && make opt
 
 # LEO-Prover (from website)
 leo-release-%.tgz:
@@ -48,6 +49,7 @@ leo-release-%.tgz:
 leo-release-%: leo-release-%.tgz
 	mkdir $@
 	tar -xmf $^ -C $@ --strip-components 1
-	cd $@/src && make opt
 
-leo-git-%/bin/leo: leo-git-%
+# LEO-Prover (common)
+leo-%/bin/leo: leo-%
+	cd leo-$*/src && make opt
