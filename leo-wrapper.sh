@@ -17,6 +17,11 @@ STD_OUT_FILE=$(mktemp)
 TIME_STR=$({ TIMEFORMAT='%R, %U'; time timeout $((TIMELIMIT + 5)) leo ${LEO_OPTS} ${FILE} >${STD_OUT_FILE} 2>${STD_ERR_FILE}; } 2>&1)
 TIMEOUT_RETURN=$?
 
+# if error also output stdout
+if [[ ${TIMEOUT_RETURN} -eq 255 ]]; then
+    echo ">>> prover std_out for ${FILE} >>>" 1>&2
+    cat ${STD_OUT_FILE} 1>&2
+fi
 echo ">>> prover std_err for ${FILE} >>>" 1>&2
 cat ${STD_ERR_FILE} 1>&2
 echo ">>>>>>" 1>&2
