@@ -11,7 +11,6 @@ LEO_OPTS=${*:2}
 FILE=$1
 PROBLEM=$(basename $1)
 
-
 STD_ERR_FILE=$(mktemp)
 STD_OUT_FILE=$(mktemp)
 TIME_STR=$({ TIMEFORMAT='%R, %U'; time timeout $((TIMELIMIT + 5)) leo ${LEO_OPTS} ${FILE} >${STD_OUT_FILE} 2>${STD_ERR_FILE}; } 2>&1)

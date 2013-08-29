@@ -107,6 +107,7 @@ done
 cat > ${PROFILE} <<EOF
 export PATH := leo-${LEO_VERSION}/bin:\$(PATH)
 export TPTP := TPTP-v${TPTP_VERSION}
+export TIMEOUT := ${TIMELIMIT}
 
 ${RESULT_PREFIX}/summary.csv: ${TARGETS}
 	./leo-wrapper.sh > \$@
