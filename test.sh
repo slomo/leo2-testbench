@@ -117,7 +117,7 @@ ${RESULT_PREFIX}/summary.csv: ${TARGETS}
 
 ${RESULT_PREFIX}/%.p.csv: TPTP-v${TPTP_VERSION} ${FO_BINARIES} leo-${LEO_VERSION}/bin/leo
 	mkdir -p \$(dir \$@)
-	./leo-wrapper.sh \$(TPTP)/Problems/\$*.p ${LEO_OPTS} > \$@
+	./leo-wrapper.sh \$(TPTP)/Problems/\$*.p \$@ ${LEO_OPTS} 
 EOF
 
 make PROFILE="${PROFILE}"
