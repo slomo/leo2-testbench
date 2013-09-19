@@ -35,7 +35,7 @@ SPASS-%/SPASS: SPASS-%.tgz
 
 # LEO-Prover (from git)
 leo-git:
-	git clone ${LEO_REPO} $@ --bare
+	git clone ${LEO_REPO} $@ --mirror
 
 leo-git-%: leo-git
 	mkdir $@
