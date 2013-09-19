@@ -17,7 +17,6 @@ categorize <- function(row) {
    }}
 }
 
-
 for (filename in filenames) {
 
     filedata <- read.csv(file.path(filename,"summary.csv"),
@@ -27,16 +26,20 @@ for (filename in filenames) {
     # subprovers <- print(paste(t(runInfo[,-(1:2)])[,1], collapse = " and "))
     # infoStr <- paste("Leo",runInfo[1,1],"using",subprovers)
 
-
-
     config <- paste(readLines(file.path(filename,"config.sh")), collapse =" ")
-    leoVersion <- sub("^.*LEO_VERSION=\"?([a-z]*)-([a-z0-9\\.]*)\"?.*$","\\1 (\\2)",config)
+    leoVersion <- sub("^.*LEO_VERSION=\"?([a-z]*)-([a-z0-9\\.]*)\"?.*$","\\1 \\2",config)
+    leoVersion <- sub("release ","", leoVersion)
     provers <- sub("^.*FO_PROVERS=\\(\\s*(.*?)\\s*\\).*$","\\1",config)
     provers <- gsub(" ",", ",provers)
     provers <- gsub("\"","", provers)
     provers <- gsub("-"," ", provers)
     numJobs <- sub(".*APPEND_OPTS=\".*?-aj (\\d+).*","\\1", config)
-    infoStr <- paste("leo",leoVersion,"\n","using",provers,"with",numJobs,"processes");
+    if (nchar(numJobs) > 2 ) {
+      infoStr <- paste0("leo ",leoVersion," (",provers,")");
+    } else {
+      infoStr <- paste0("leo ",leoVersion," (",provers,") parallel: ",numJobs);
+    }
+
 
     filedata$configuration <- infoStr
 
@@ -51,10 +54,26 @@ for (filename in filenames) {
 }
 
 
+configurations <- c(unique(solutions['configuration']))
+
+
+corSolutions <- subset(solutions, 1==1)
+corSolutions <- ddply(solutions, .(problem), function (df) { data.frame("sucess"= c(paste(df['configuration'], collapse = " ")))  })
+corSolutions
+
 ggplot(solutions, aes(category,  fill=configuration )) +
 geom_bar( position="dodge" )
 
+#ggplot(corSolutions, aes(problem, fill=sucess)) +
+#geom_bar( position="dodge" )
 
+ggplot(corSolutions, mapping=aes(x="problem", y="realtime"), size=5) +
+geom_jitter()
+                      
+
+
+
+                    
 #ggplot(solutions, aes(problem, fill=category)) +
 #geom_bar()
 
