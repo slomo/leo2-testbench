@@ -74,7 +74,8 @@ function generate_opts() {
 }
 
 function next_run() {
-    local LAST=$(pushd run > /dev/null ; ls | sort -n | tail -1 ; popd > /dev/null)
+    mkdir -p run
+    local LAST=$(pushd run > /dev/null ; ls ?? | sort -n | tail -1 ; popd > /dev/null)
     printf "%.2d" $((LAST + 1))
 }
 
