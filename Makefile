@@ -37,10 +37,12 @@ SPASS-%/SPASS: SPASS-%.tgz
 leo-git:
 	git clone ${LEO_REPO} $@ --mirror
 
-leo-git-%: leo-git
-	mkdir $@
+leo-git/FETCH_HEAD: leo-git
 	cd $^ && git fetch --tags --all
-	cd $^ && git --work-tree=../$@ checkout $* -- .
+
+leo-git-%: leo-git/FETCH_HEAD
+	mkdir -p $@
+	cd $(dir $^) && git --work-tree=../$@ checkout $* -- .
 
 # LEO-Prover (from website)
 leo-release-%.tgz:
@@ -53,3 +55,5 @@ leo-release-%: leo-release-%.tgz
 # LEO-Prover (common)
 leo-%/bin/leo: leo-%
 	cd leo-$*/src && make opt
+
+.PHONY: leo-git/FETCH_HEAD
