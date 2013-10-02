@@ -2,10 +2,11 @@
 
 # only out put header
 if [[ -z $1 ]]; then
-    echo "problem, realtime, usertime, status, counter, timer"
+    echo "problem, realtime, usertime, status, counters, timers"
     exit 0
 fi
 
+TIMELIMIT="${TIMEOUT}"
 LEO_OPTS=${*:3}
 FILE=$1
 OUTFILE=$2
@@ -14,10 +15,10 @@ PROBLEM=$(basename $1)
 
 STD_ERR_FILE=${OUTFILE}.stderr
 STD_OUT_FILE=${OUTFILE}.stdout
-TIME_STR=$({ TIMEFORMAT='%R, %U'; time timeout $((TIMELIMIT + 5)) leo ${LEO_OPTS} ${FILE} >${STD_OUT_FILE} 2>${STD_ERR_FILE}; } 2>&1)
+TIME_STR=$({ TIMEFORMAT='%R, %U'; time timeout -k $((TIMELIMIT + 10)) -s TERM $((TIMELIMIT + 5)) leo ${LEO_OPTS} ${FILE} >${STD_OUT_FILE} 2>${STD_ERR_FILE}; } 2>&1)
 TIMEOUT_RETURN=$?
 
-echo "[cmd]: leo ${LEO_OPTS} ${FILE}"
+echo "[cmd]:TPTP=${TPTP} $(which leo) ${LEO_OPTS} ${FILE}"
 
 # if error also output stdout
 if [[ ${TIMEOUT_RETURN} -eq 255 ]]; then

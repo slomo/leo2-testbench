@@ -58,6 +58,10 @@ function generate_opts() {
                 BINARY="${BINARY}/SPASS"
                 PROVER="spass"
                 ;;
+            VAMPIRE-*)
+                BINARY="${BINARY}/vampire.sh"
+                PROVER="vampire"
+                ;;
         esac
         LEO_OPTS=" ${LEO_OPTS} --atp ${PROVER}=${BINARY}"
         PROVERS+=(${PROVER})
@@ -75,16 +79,15 @@ function generate_opts() {
 
 function next_run() {
     mkdir -p run
-    local LAST=$(pushd run > /dev/null ; ls ?? | sort -n | tail -1 ; popd > /dev/null)
-    printf "%.2d" $((LAST + 1))
+    local last_run=$(cd run; ls -d --color=never [[:digit:]][[:digit:]] 2> /dev/null | tail -1)
+    printf "%.2d" $(echo "${last_run} + 1" | bc)
 }
 
 # continue if last run not done
 if [[ -L ${CURRENT_LINK} ]]; then
     log_info "Continue last run"
-    make PROFILE="${CURRENT_LINK}/profile"
+    make -r PROFILE="${CURRENT_LINK}/profile"
     exit 1
-
 fi
 
 load_config $1
@@ -113,12 +116,12 @@ export TIMEOUT := ${TIMELIMIT}
 ${RESULT_PREFIX}/summary.csv: ${TARGETS}
 	./leo-wrapper.sh > \$@
 	cat \$^ >> \$@
-	rm ${CURRENT_LINK}
+	rm ${CURRENT_LINK} || true
 
 
-${RESULT_PREFIX}/%.p.csv: TPTP-v${TPTP_VERSION} ${FO_BINARIES} leo-${LEO_VERSION}/bin/leo
+${RESULT_PREFIX}/%.p.csv: TPTP-v${TPTP_VERSION} leo-${LEO_VERSION}/bin/leo ${FO_BINARIES}
 	mkdir -p \$(dir \$@)
 	./leo-wrapper.sh \$(TPTP)/Problems/\$*.p \$@ ${LEO_OPTS} 
 EOF
 
-make PROFILE="${PROFILE}"
+make -r PROFILE="${PROFILE}"
