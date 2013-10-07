@@ -33,10 +33,16 @@ function load_config() {
     [[ -n ${TPTP_PATTERN} ]] || exit_with_reason "Need TPTP_PROBLEMS to contain a pattern"
     [[ -n ${APPEND_OPTS} ]] || APPEND_OPTS=""
 
+
+
     # generate list of tptp problems
     make TPTP-v${TPTP_VERSION}
+#    echo "find TPTP-v${TPTP_VERSION}/Problems -iname \"${TPTP_PATTERN}\" |
+#        sed 's/.*\b\([A-Z]\{3\}\)\b/\1/'"
+
     TPTP_PROBLEMS=$(find TPTP-v${TPTP_VERSION}/Problems -iname "${TPTP_PATTERN}" |
         sed 's/.*\b\([A-Z]\{3\}\)\b/\1/')
+#    echo $TPTP_PROBLEMS
 }
 
 function generate_opts() {
@@ -103,11 +109,18 @@ ln ${RESULT_DIR} -s ${CURRENT_LINK}
 ln ${RESULT_DIR} -sf ${LAST_LINK}
 cp ${CONFIG_FILE} ${RESULT_DIR}/config.sh
 echo $(date) >  ${RESULT_DIR}/time
+
+[[ -n "${TPTP_PROBLEMS}"  ]] || exit_with_reason "No problems could be found using the specified regex"
+
+
+
 # generate problem list
 TARGETS=""
 for FILE in ${TPTP_PROBLEMS}; do
     TARGETS="${RESULT_PREFIX}/${FILE}.csv ${TARGETS}"
 done
+
+
 
 cat > ${PROFILE} <<EOF
 export PATH := leo-${LEO_VERSION}/bin:\$(PATH)
@@ -118,13 +131,13 @@ all: ${RESULT_PREFIX}/summary.csv
 
 ${RESULT_PREFIX}/%.p.csv: TPTP-v${TPTP_VERSION} leo-${LEO_VERSION}/bin/leo ${FO_BINARIES}
 	mkdir -p \$(dir \$@)
-	./leo-wrapper.sh \$(TPTP)/Problems/\$*.p \$@ ${LEO_OPTS} 
+	./leo-wrapper.sh \$(TPTP)/Problems/\$*.p \$@ ${LEO_OPTS}
 
 ${RESULT_PREFIX}/summary.csv: ${TARGETS}
 	./leo-wrapper.sh > \$@
 	cat \$^ >> \$@
 	rm ${CURRENT_LINK} || true
- 
+
 EOF
 
 make -r PROFILE="${PROFILE}"

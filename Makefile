@@ -37,7 +37,7 @@ SPASS-%/SPASS: SPASS-%.tgz
 
 # LEO-Prover (from git)
 leo-git:
-	git clone ${LEO_REPO} $@ --mirror
+	git clone --mirror ${LEO_REPO} $@
 
 leo-git/FETCH_HEAD: leo-git
 	cd $^ && git fetch --tags --all
