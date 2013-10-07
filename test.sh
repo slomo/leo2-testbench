@@ -34,6 +34,7 @@ function load_config() {
     [[ -n ${APPEND_OPTS} ]] || APPEND_OPTS=""
 
     # generate list of tptp problems
+    make TPTP-v${TPTP_VERSION}
     TPTP_PROBLEMS=$(find TPTP-v${TPTP_VERSION}/Problems -iname "${TPTP_PATTERN}" |
         sed 's/.*\b\([A-Z]\{3\}\)\b/\1/')
 }
@@ -48,7 +49,7 @@ function generate_opts() {
     local PROVER
 
     for PROVER_NAME in "${FO_PROVERS[@]}"; do
-        BINARY="${PROVER_NAME}/"
+        BINARY="${PROVER_NAME}"
         case ${PROVER_NAME} in
             E-*)
                 PROVER="e"
@@ -113,15 +114,17 @@ export PATH := leo-${LEO_VERSION}/bin:\$(PATH)
 export TPTP := TPTP-v${TPTP_VERSION}
 export TIMEOUT := ${TIMELIMIT}
 
-${RESULT_PREFIX}/summary.csv: ${TARGETS}
-	./leo-wrapper.sh > \$@
-	cat \$^ >> \$@
-	rm ${CURRENT_LINK} || true
-
+all: ${RESULT_PREFIX}/summary.csv
 
 ${RESULT_PREFIX}/%.p.csv: TPTP-v${TPTP_VERSION} leo-${LEO_VERSION}/bin/leo ${FO_BINARIES}
 	mkdir -p \$(dir \$@)
 	./leo-wrapper.sh \$(TPTP)/Problems/\$*.p \$@ ${LEO_OPTS} 
+
+${RESULT_PREFIX}/summary.csv: ${TARGETS}
+	./leo-wrapper.sh > \$@
+	cat \$^ >> \$@
+	rm ${CURRENT_LINK} || true
+ 
 EOF
 
 make -r PROFILE="${PROFILE}"

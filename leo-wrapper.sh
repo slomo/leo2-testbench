@@ -2,7 +2,7 @@
 
 # only out put header
 if [[ -z $1 ]]; then
-    echo "problem, realtime, usertime, status, counters, timers"
+    echo "problem, realtime, usertime, status, counters, timers, return"
     exit 0
 fi
 
@@ -15,7 +15,7 @@ PROBLEM=$(basename $1)
 
 STD_ERR_FILE=${OUTFILE}.stderr
 STD_OUT_FILE=${OUTFILE}.stdout
-TIME_STR=$({ TIMEFORMAT='%R, %U'; time timeout -k $((TIMELIMIT + 10)) -s TERM $((TIMELIMIT + 5)) leo ${LEO_OPTS} ${FILE} >${STD_OUT_FILE} 2>${STD_ERR_FILE}; } 2>&1)
+TIME_STR=$({ TIMEFORMAT='%R, %U'; time timeout -k $((TIMELIMIT + 20)) -s TERM $((TIMELIMIT + 5)) leo ${LEO_OPTS} ${FILE} >${STD_OUT_FILE} 2>${STD_ERR_FILE}; } 2>&1)
 TIMEOUT_RETURN=$?
 
 echo "[cmd]:TPTP=${TPTP} $(which leo) ${LEO_OPTS} ${FILE}"
@@ -41,4 +41,4 @@ TIMER=$(grep -m 1 "% LEO-II timers:"  ${STD_OUT_FILE})
 TIMER=${TIMER#"% LEO-II timers:"}
 
 SZS_STATUS=${SZS_STATUS#"% SZS status "}
-echo "${PROBLEM}, ${TIME_STR}, ${SZS_STATUS}, ${COUNTER}, ${TIMER}" > ${OUTFILE}
+echo "${PROBLEM}, ${TIME_STR}, ${SZS_STATUS}, ${COUNTER}, ${TIMER}, ${TIMEOUT_RETURN}" > ${OUTFILE}

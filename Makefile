@@ -1,4 +1,4 @@
-LEO_REPO="git@github.com:slomo/leo2.git"
+LEO_REPO="https://github.com/slomo/leo2.git"
 
 include $(PROFILE)
 
@@ -29,6 +29,8 @@ E-%/PROVER/eprover: E-%
 # SPASS-Prover
 SPASS-3.5.tgz:
 	wget http://www.spass-prover.org/download/binaries/spass35pclinux64.tgz -O "$@"
+
+.SECONDARY: leo-*/bin/leo SPASS-*/SPASS
 
 SPASS-%/SPASS: SPASS-%.tgz
 	tar -xmf $^
