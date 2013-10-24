@@ -6,7 +6,7 @@ from operator import itemgetter
 
 import re
 import matplotlib as mplt
-mplt.use('pgf')
+#mplt.use('pgf')
 import matplotlib.pyplot as plt
 import numpy as np
 import itertools
@@ -252,8 +252,8 @@ def compare_runs(sets):
 def describe_config(config):
     with open(os.path.join(config, 'config.sh')) as f:
         content = f.read()
-        vregex = "LEO_VERSION=(git|release)-(?P<leov>[^\-]+)(-metrics)?" 
-        match = re.search(vregex, content)
+        vregex = "^LEO_VERSION=(git|release)-(?P<leov>.+?)(-metrics)?$" 
+        match = re.search(vregex, content, re.M)
         leoversion = match.group('leov')
 
         if not match:
@@ -274,41 +274,71 @@ def describe_config(config):
             foprover = ', '.join(map(lambda s: s.lower(), l))
 
         if leoversion != "1.6" and len(l) == 3:
-            return "LEO %s" % (leoversion)
+            return "LEO %s (multiple provers)" % (leoversion)
 
         return "LEO %s (%s)" % (leoversion, foprover)
 
 
-def these2a(df, reference_conf):
+def these2b(df, reference_conf):
 
     # select median of each problem
-    grouped = df.groupby(['config', 'problem'])['realtime'].median()
+    aggregated = df.groupby(['config', 'problem'])['realtime'].median()
+    
 
-    df = grouped.reset_index()
-    g2 = df.groupby(['config'])
 
-    reference =  g2.get_group(reference_conf).reset_index()
-    reference['category'] = reference['realtime'].apply(lambda x: "%d" % (x//10))
-    reference_name = describe_config(reference_conf)
+    reftime = aggregated[reference_conf]
+    groups = reftime.apply(lambda x: "%d to %d seconds" % ((x//10)*10,((x//10)+1)*10))
 
-    for i, group in g2:
 
-        if i == reference_conf:
-            continue
+    print groups[groups == '20 to 30 seconds']
+    
+    # reference_name = describe_config(reference_conf)
 
-        series = group.reset_index()
-        series ['delta'] =  series['realtime'] - reference['realtime']
-        series ['category'] = reference['category']
-        plot = series.boxplot(['delta'], by='category')
-        plot.set_title("%s" % (describe_config(i)))
 
-    return plot
 
+    for key in sys.argv[2:]:
+
+        print reference_conf
+        print key
+ 
+
+        run = aggregated.ix[key]
+        run = pd.DataFrame(run)
+        
+        print run
+
+
+        run["ref.time"] = reftime
+        run["ref.group"] = groups
+        run["ref.delta"] = run['realtime'] - run['ref.time']
+
+        run = run.dropna()
+        run = run.sort("ref.delta")
+        print run.values
+
+        plot = run.boxplot(['ref.delta'], by='ref.group')        
+
+
+
+#        series = group.reset_index()
+#        series ['delta'] = seri['realtime'] - reference['realtime']
+#        series ['group'] = reference['group']
+
+#        plot.set_title("%s" % (describe_config(i)))
+
+#    return plot
+
+def these2bfiltered(df, ref):
+
+    df = df[ df['category'] == 'Solved' ]
+    these2b(df, ref)
 
 
 # TODO: imporve legend and use relative numbers instead of absolute
-def these2b(df):
+def these2a(df):
 
+
+    print (df[df['category'] == 'Error'])[['problem', 'expected', 'status']]
 
     df['config'] = df['config'].apply(describe_config)
     df = df[ df['expected'] != 'Open' ]    
@@ -316,19 +346,27 @@ def these2b(df):
     bla  = df[['problem', 'config', 'category', 'expected', 'status','realtime']]
     cor = df[['domain', 'config', 'category']]
 
-    df['category'] = cor['category']
-
-    
+    df['category'] = cor['category']    
     a = cor.groupby(['config','category'])['category'].count()
     b = a.unstack('config')
     print b
     plot = b.plot(kind='bar')
     plot.xaxis.grid(False)
+    plot.yaxis.grid(True)
+    plot.yaxis.set_zorder(3)
+    plot.yaxis.linestyle = 'solid'
+
+    for line in plot.lines:
+        print line.get_zorder()
+
+
     plot.legend().title=""
     labels = plot.get_xticklabels() 
-    for label in labels: 
-        label.set_rotation(0) 
+    
+    plot.grid(axis = 'y', color ='white', linestyle='-')
 
+
+    plt.show()
     return plot
 
 def pre1(df):
@@ -354,17 +392,66 @@ def pre1(df):
     plt.ylim(0,1.1)
 
 
+def visualize_groups(df, config):
+
+    df = df[(df['config'] == config) & ((df['category'] == "Timeout") |(df['category'] == "Solved") | (df['category'] == 'Unsolved'))]
+# df['group'] = df['realtime'].apply(lambda x: x//1)
+#    group = df.groupby(['])['group'].count()    
+
+#   print group
+
+  #  plot = group.hist()
+
+    df['realtime'] = df['realtime']
+    df.hist('realtime', by=df['category'])
+
+    plt.show()
+    
+
+
+# plotted with remoterun/01 and remoterun/00
+def movements(df):
+
+    states = df.groupby(['config', 'problem'])['category'].mean()
+    states =  states.unstack(level='config').reset_index().groupby([ sys.argv[2], sys.argv[1]])['problem'].count()
+    s = states.unstack()
+    s.plot(kind='bar')
+    print s
+    
+
+def analyze_failed(df):
+
+    states = df.groupby(['config', 'problem']).max()
+    reference = states.xs(sys.argv[1])
+    
+    for key in sys.argv[2:]:
+        run = states.xs(key)
+        
+        run['group'] = reference['realtime'].apply(lambda x: x//1)
+        run['ref.category']  = reference['category']
+        run =  run[run['ref.category'] == 'Solved']
+        run['changed'] = (run['category'] == run['ref.category'])
+        
+        s = run.groupby(['group', 'changed'])['changed'].count()
+        cats = run.groupby('group')['group'].count()
+        #    s = s.mul(100, level='group').div(cats, level='group')
+        s = s.unstack(level='changed')
+        s.plot(kind='bar')
+
 def categorize(entry):
     if entry['expected'] == entry['status']:
         category = 'Solved'
     elif entry['status'] == 'Timeout':
         category = 'Timeout'
-    elif entry['status'] == 'Unknown':
+    elif (entry['status'] == 'Unknown') or (entry['status'] == 'Error'):
         category =  'Unsolved'
     else:
         category = 'Error'
         
     return category
+
+
+
 
 if __name__ == "__main__":
 
@@ -411,11 +498,16 @@ if __name__ == "__main__":
     
     df['category'] = df.apply(categorize, axis=1)
 
-#    these2a(df, sys.argv[1])
-    these2b(df)
+#    these2b(df, sys.argv[1])
+    these2bfiltered(df, sys.argv[1])
+#    these2a(df)
 #    pre1(df)
+#    visualize_groups(df, sys.argv[1])
 
-    
+#    analyze_failed(df)
+
+
+    plt.show()
     plt.savefig('file.pgf')
     
 
