@@ -6,7 +6,10 @@ from operator import itemgetter
 
 import re
 import matplotlib as mplt
-#mplt.use('pgf')
+
+if sys.argv[1] == "plot":
+    mplt.use('pgf')
+
 import matplotlib.pyplot as plt
 import numpy as np
 import itertools
@@ -40,6 +43,8 @@ class DataReader:
             
             if leoversion == "release":
                 leoversion = "1.6"
+
+            leoversion = leoversion.replace('-nm', ' modified ')
             
                 
             foregex = "FO_PROVERS=\((?P<provers>.+)\)"
@@ -119,8 +124,31 @@ def style_barchart(plot):
     plot.yaxis.linestyle = 'solid'
     plot.grid(axis = 'y', color ='white', linestyle='-')    
 
-
 def pre1(df):
+
+    timers = {
+        "timers.mainloop.calculus" : "execute calculus rules",
+        "timers.mainloop.checktime" : "checkin time left",
+        "timers.mainloop.lightes" : "compute lightest clause",
+        "timers.mainloop.subpover" : "call subprover",
+        "timers.mainloop.subsumed" : "check subsumtion",
+        "timers.mainloop.updatesets" : "updating clause set"
+        }
+
+    df = df[ df['config'].isin(['LEO 1.6 (e-1.8)'])]
+
+    # fix problem names for latex
+    df['problem'] = df['problem'].apply(lambda s: s.replace("^", "\^{}"))
+    td = df.groupby('problem')[timers.keys()].mean()
+    td = td[ (td['timers.mainloop.subpover'] > 2) & (td['timers.mainloop.calculus'] > 2) ]
+    td.rename(columns=timers, inplace=True)
+    plot = td.tail(20).plot(kind='bar', stacked=True)
+    plot.set_ylim([0, 45])
+    style_barchart(plot)
+    return
+
+
+def pre2(df):
 
     # only applicaable configs
     df = df[ df['config'].isin(['LEO 1.6 (e-1.8)', 'LEO 1.6 (vampire-3.0)'])]
@@ -142,66 +170,38 @@ def pre1(df):
     plot.set_ylim([0,1.1])
     style_barchart(plot)
     return plot
-    
-# TODO: imporve legend and use relative numbers instead of absolute
+
+
 def these2a(df):
 
-
-    print (df[df['category'] == 'Error'])[['problem', 'expected', 'status']]
-
-    df['config'] = df['config'].apply(describe_config)
-    df = df[ df['expected'] != 'Open' ]    
-
-    bla  = df[['problem', 'config', 'category', 'expected', 'status','realtime']]
+    df = df[ df['expected'] != 'Open' ]
     cor = df[['domain', 'config', 'category']]
-
-    df['category'] = cor['category']    
     a = cor.groupby(['config','category'])['category'].count()
     b = a.unstack('config')
-    print b
     plot = b.plot(kind='bar')
 
     style_barchart(plot)
-
-    plot.xaxis.grid(False)
-    plot.yaxis.grid(True)
-    plot.yaxis.set_zorder(3)
-    plot.yaxis.linestyle = 'solid'
-
-
-    plot.legend().title=""
-    plot.grid(axis = 'y', color ='white', linestyle='-')
-
     return plot
 
-def these2b(df, reference_conf):
+def these2b(df, reference_conf, others):
+
+    df = df[ (df['category'] == 'Solved') ]
 
     # select median of each problem
     aggregated = df.groupby(['config', 'problem'])['realtime'].median()
-    
-
-
     reftime = aggregated[reference_conf]
     groups = reftime.apply(lambda x: "%d to %d seconds" % ((x//10)*10,((x//10)+1)*10))
 
-
-    print groups[groups == '20 to 30 seconds']
-    
     # reference_name = describe_config(reference_conf)
+    for key in others:
 
-
-
-    for key in sys.argv[2:]:
-
-        print reference_conf
-        print key
- 
+        print "using %s as baseline for %s" % (reference_conf, key)
 
         run = aggregated.ix[key]
         run = pd.DataFrame(run)
         
         print run
-
+        print reftime
 
         run["ref.time"] = reftime
         run["ref.group"] = groups
@@ -209,62 +209,57 @@ def these2b(df, reference_conf):
 
         run = run.dropna()
         run = run.sort("ref.delta")
-        print run.values
 
-        plot = run.boxplot(['ref.delta'], by='ref.group')        
+        plot = run.boxplot(['ref.delta'], by='ref.group')
 
+        print "Total delta", run['ref.delta'].sum()
 
-
-#        series = group.reset_index()
-#        series ['delta'] = seri['realtime'] - reference['realtime']
-#        series ['group'] = reference['group']
-
-#        plot.set_title("%s" % (describe_config(i)))
-
-#    return plot
-
-def these2bfiltered(df, ref):
-
-    df = df[ df['category'] == 'Solved' ]
-    these2b(df, ref)
+#        run['ref.deltafaktor'] = run['realtime'] / run['ref.time']
+#        print run['ref.delta'].sum()
+#        run[run['ref.delta'] <= 0].hist("ref.deltafaktor")
 
 
+    return plot
 
+def these4(df, configs):    
+    df['problem'] = df['problem'].apply(lambda s: s.replace("^", "\^{}"))
+    agg = df.groupby(['config','problem'])[['realtime', 'usertime', 'category']].max()
+
+
+    ref = agg.ix[configs[0]]
+    df  = agg.ix[configs[1]]
+
+    data = pd.DataFrame({ configs[1] : df['usertime']})
+    data[configs[0]] = ref['usertime']
+    data = data[df['category'] == ref['category']]
+    data.sort(configs[0]).plot(kind='scatter')
+    
+    print (data[configs[0]] - data[configs[1]]).sum()
 
 
 
 def visualize_groups(df, config):
 
     df = df[(df['config'] == config) & ((df['category'] == "Timeout") |(df['category'] == "Solved") | (df['category'] == 'Unsolved'))]
-# df['group'] = df['realtime'].apply(lambda x: x//1)
-#    group = df.groupby(['])['group'].count()    
-
-#   print group
-
-  #  plot = group.hist()
-
     df['realtime'] = df['realtime']
     df.hist('realtime', by=df['category'])
-
     plt.show()
 
 
-# plotted with remoterun/01 and remoterun/00
-def movements(df):
+def movements(df, confs):
+    df = df[ df['config'].isin(confs)]
+    states = df.groupby(['config', 'problem'])['category'].max()
+    states = states.unstack(level='config').reset_index().groupby(confs)['problem'].count()
+    states = states.unstack(level=confs[0])
+    print states
+    return states.plot(kind='barh')
 
-    states = df.groupby(['config', 'problem'])['category'].mean()
-    states =  states.unstack(level='config').reset_index().groupby([ sys.argv[2], sys.argv[1]])['problem'].count()
-    s = states.unstack()
-    s.plot(kind='bar')
-    print s
-    
-
-def analyze_failed(df):
+def analyze_failed(df,configs):
 
     states = df.groupby(['config', 'problem']).max()
-    reference = states.xs(sys.argv[1])
+    reference = states.xs(configs[0])
     
-    for key in sys.argv[2:]:
+    for key in configs[1:]:
         run = states.xs(key)
         
         run['group'] = reference['realtime'].apply(lambda x: x//1)
@@ -276,24 +271,78 @@ def analyze_failed(df):
         cats = run.groupby('group')['group'].count()
         #    s = s.mul(100, level='group').div(cats, level='group')
         s = s.unstack(level='changed')
-        s.plot(kind='bar')
+        print s
+        s.ix['True'].plot(kind='bar')
 
 def categorize(entry):
-    if entry['expected'] == entry['status']:
-        category = 'Solved'
-    elif entry['status'] == 'Timeout':
+
+    if entry['status'] == 'Timeout':
         category = 'Timeout'
-    elif (entry['status'] == 'Unknown') or (entry['status'] == 'Error'):
-        category =  'Unsolved'
+    elif entry['expected'] == 'Unknown' or entry['expected'] == 'Open':
+        if entry['status'] == 'Unknown':
+            category = 'Unknown'
+        elif entry['status'] == 'Error':
+            category = 'Aborted'
+        else:
+            category = 'No proof'
+    elif entry['status'] == 'Unknown' or entry['status'] == 'Error':
+        category = 'Aborted'
+    elif entry['expected'] == entry['status']:
+        category = 'Solved'        
     else:
         category = 'Error'
         
     return category
 
 
+def compare_metrics(df):
+
+    timers = {
+        "timers.mainloop.calculus" : "execute calculus rules",
+        "timers.mainloop.checktime" : "checkin time left",
+        "timers.mainloop.lightes" : "compute lightest clause",
+        "timers.mainloop.subpover" : "call subprover",
+        "timers.mainloop.subsumed" : "check subsumtion",
+        "timers.mainloop.updatesets" : "updating clause set"
+        }
+    
+    keys = timers.keys()
+    keys.append('category')
+
+
+    times = df[keys].groupby('category').sum()
+    total = times.sum(axis=1)
+    times = times.div(total, axis='index').drop('Timeout')
+    
+
+    times.rename(columns=timers, inplace=True)
+    plot = times.plot(kind='bar', stacked=True)
+    plot.set_ylim((0,1.1))
+    plot.set_xlim((0,5))
+    plot.legend(loc='right')
+
+#    df['timers.mainloop.subpover'].hist()
+
+def asd(df, configs):
+
+    print df
+    df['problem'] = df['problem'].apply(lambda s: s.replace("^", "\^{}"))
+    agg = df.groupby(['config','problem'])[['realtime', 'usertime', 'category','timers.mainloop.subpover','counters.mainloop.entry']].max()
+
+
+    ref = agg.ix[configs[0]]
+    df  = agg.ix[configs[1]]
+
+    data = pd.DataFrame({ "delta" : df['realtime']  - ref['realtime']  })
+    data['timers.mainloop.subpover'] = ref['timers.mainloop.subpover']
+    data['counters.mainloop.entry'] = ref['counters.mainloop.entry']
+    data.sort('delta').plot(y='delta',x='counters.mainloop.entry')
+    
+#    print (data[configs[0]] - data[configs[1]]).sum()
 
 
 
+    
 
 if __name__ == "__main__":
 
@@ -301,36 +350,42 @@ if __name__ == "__main__":
         "#E69F00", "#56B4E9", "#009E73", "#F0E442",
         "#0072B2", "#D55E00", "#CC79A7"
     ]
+    
+    if sys.argv[1] == "plot":
+        candidates = sys.argv[2:]
+    else:
+        candidates = sys.argv[1:]
 
     dr = DataReader()
     dr.loadTptp('5.5.0')
-    data = dr.read_all(sys.argv[1:])    
+    data = dr.read_all(candidates)
+    print dr.configs
     df = pd.DataFrame(data)
+
     
     df['category'] = df.apply(categorize, axis=1)
 
-#    these2b(df, sys.argv[1])
-#    these2bfiltered(df, sys.argv[1])
-#    these2a(df)
-    pre1(df)
-#    visualize_groups(df, sys.argv[1])
-#    analyze_failed(df)
 
+
+#    these2a(df)
+#    these2b(df, dr.configs[0], dr.configs[1:])
+
+#    these3a(df)
+#    these3b(df, dr.configs[0], dr.configs[1:])
+
+
+#    pre1(df)
+#    per2(df)
+#    visualize_groups(df, sys.argv[1])
+#    analyze_failed(df, dr.configs)
+    movements(df, dr.configs)
+#    compare_metrics(df)
+
+#    these4(df, dr.configs)
+#    asd(df, dr.configs)
 
     plt.show()
     plt.savefig('file.pgf')
-    
-
-    
-    
-
-
-   # compare_runs(read_data(sys.argv[1:]))
-        
-
-#    plot_provers(metrics)
-    #plot_mainloop_timer(metrics[0], relative = False)
-    #plt.savefig('out.pdf')
    
         
 
