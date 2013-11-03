@@ -6,6 +6,7 @@ from operator import itemgetter
 
 import re
 import matplotlib as mplt
+from matplotlib import cm
 
 if sys.argv[1] == "plot":
     mplt.use('pgf')
@@ -120,9 +121,11 @@ def style_barchart(plot):
 
     plot.xaxis.grid(False)
     plot.yaxis.grid(True)
-    plot.yaxis.set_zorder(3)
-    plot.yaxis.linestyle = 'solid'
-    plot.grid(axis = 'y', color ='white', linestyle='-')    
+    return plot
+#    plot.yaxis.set_zorder(3)
+#    plot.yaxis.linestyle = 'solid'
+#    plot.grid(axis = 'y', color ='white', linestyle='-')
+
 
 def pre1(df):
 
@@ -250,9 +253,47 @@ def movements(df, confs):
     df = df[ df['config'].isin(confs)]
     states = df.groupby(['config', 'problem'])['category'].max()
     states = states.unstack(level='config').reset_index().groupby(confs)['problem'].count()
-    states = states.unstack(level=confs[0])
+    states = states.unstack(level=confs[0])    
+    
+    import matplotlib.sankey as sankey
+
+    f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
+
+    axes = [ax1, ax2, ax3, ax4]
+    cats = [ "Aborted", "Solved", "Timeout",  "Unknown"]
+
+    states = states.fillna(0)
     print states
-    return states.plot(kind='barh')
+
+    for ax, cat in zip(axes,cats):
+
+        data = states.ix[cat]
+        values = []
+        lables = []
+        oris = []
+        bla = -1
+
+        for (index, val) in data.iteritems():
+            lables.append(index)
+            values.append(val)
+            if index == cat:
+                bla=1
+                oris.append(0)
+            else:
+                oris.append(bla)
+
+
+        lables.append('')
+        values.append(-data.sum())
+        oris.append(0)
+
+        sankey.Sankey(ax=ax).add(
+            flows = values,
+            orientations = oris,
+            trunklength = 1000,
+            pathlengths = [ 500 ] * 5
+            ).finish()
+        
 
 def analyze_failed(df,configs):
 
@@ -262,17 +303,54 @@ def analyze_failed(df,configs):
     for key in configs[1:]:
         run = states.xs(key)
         
-        run['group'] = reference['realtime'].apply(lambda x: x//1)
-        run['ref.category']  = reference['category']
+        run['group'] = reference['realtime'].apply(lambda x: "%2d - %2d s" % ((x//5)*5, ((x//5) + 1)*5))
+        run['ref.category'] = reference['category']
         run =  run[run['ref.category'] == 'Solved']
-        run['changed'] = (run['category'] == run['ref.category'])
+        run['changed'] = (run['category'] != run['ref.category'])
         
+        f, (ax1, ax2) = plt.subplots(2)
+
         s = run.groupby(['group', 'changed'])['changed'].count()
+        u = run.groupby(['expected', 'changed'])['changed'].count()
         cats = run.groupby('group')['group'].count()
-        #    s = s.mul(100, level='group').div(cats, level='group')
+        t = s.mul(1.0, level='group').div(cats, level='group')
+
+        u = u.unstack(level='changed')
         s = s.unstack(level='changed')
-        print s
-        s.ix['True'].plot(kind='bar')
+        t = t.unstack(level='changed')
+        
+
+        from matplotlib import colors
+        altmap = colors.ListedColormap(mplt.rcParams['axes.color_cycle'][1:])
+
+#        p1 = style_barchart(s[True].plot(kind='bar', ax=ax1, rot=0))
+        p2 = style_barchart(t[True].plot(kind='bar', ax=ax1, rot=0))
+
+
+        br = run.groupby('expected')['expected'].count()
+        u['Total'] = br 
+        print u
+        u = u[True].div(br)
+        p3 = style_barchart(u.plot(kind='bar', ax=ax2, colormap=altmap, rot=0))
+
+        #p1.legend().set_visible(False)
+        p2.legend().set_visible(False)
+        p3.legend().set_visible(False)
+
+        #p1.xaxis.set_label_text("")
+        p2.xaxis.set_label_text("")        
+        p3.xaxis.set_label_text("")
+        
+
+        p2.set_ylim([0,1.1])
+        p3.set_ylim([0,1.1])
+
+        #p1.set_title("absolute")
+        p2.set_title("by execution time")
+        p3.set_title("by expected result")
+        
+        
+
 
 def categorize(entry):
 
@@ -377,8 +455,8 @@ if __name__ == "__main__":
 #    pre1(df)
 #    per2(df)
 #    visualize_groups(df, sys.argv[1])
-#    analyze_failed(df, dr.configs)
-    movements(df, dr.configs)
+    analyze_failed(df, dr.configs)
+#    movements(df, dr.configs)
 #    compare_metrics(df)
 
 #    these4(df, dr.configs)

@@ -257,7 +257,7 @@ ytick.direction      : in     # direction: in or out
 
 ### Legend
 legend.fancybox      : True  # if True, use a rounded box for the
-legend.frameon       : False
+legend.frameon       : True
 #legend.isaxes        : True
 #legend.numpoints     : 2      # the number of points in the legend line
 #legend.fontsize      : large
