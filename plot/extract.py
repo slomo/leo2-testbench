@@ -2,16 +2,16 @@
 import sys
 import csv
 import os.path
+import inspect
 from operator import itemgetter
 
 import re
 import matplotlib as mplt
 from matplotlib import cm
-
-if sys.argv[1] == "plot":
-    mplt.use('pgf')
+mplt.use('pgf')
 
 import matplotlib.pyplot as plt
+from matplotlib import colors
 import numpy as np
 import itertools
 import operator as op
@@ -121,13 +121,17 @@ def style_barchart(plot):
 
     plot.xaxis.grid(False)
     plot.yaxis.grid(True)
-    return plot
+
 #    plot.yaxis.set_zorder(3)
-#    plot.yaxis.linestyle = 'solid'
 #    plot.grid(axis = 'y', color ='white', linestyle='-')
+    plot.yaxis.linestyle = 'solid'
 
 
-def pre1(df):
+    
+    return plot
+
+
+def mainloop(df):
 
     timers = {
         "timers.mainloop.calculus" : "execute calculus rules",
@@ -138,8 +142,6 @@ def pre1(df):
         "timers.mainloop.updatesets" : "updating clause set"
         }
 
-    df = df[ df['config'].isin(['LEO 1.6 (e-1.8)'])]
-
     # fix problem names for latex
     df['problem'] = df['problem'].apply(lambda s: s.replace("^", "\^{}"))
     td = df.groupby('problem')[timers.keys()].mean()
@@ -147,14 +149,17 @@ def pre1(df):
     td.rename(columns=timers, inplace=True)
     plot = td.tail(20).plot(kind='bar', stacked=True)
     plot.set_ylim([0, 45])
+    plot.xaxis.set_label_text("")
     style_barchart(plot)
-    return
+    return plot
 
 
-def pre2(df):
+def pre3(df):
 
-    # only applicaable configs
-    df = df[ df['config'].isin(['LEO 1.6 (e-1.8)', 'LEO 1.6 (vampire-3.0)'])]
+    print mplt.rcParams['axes.color_cycle']
+    colorsn = mplt.rcParams['axes.color_cycle'][0:1]
+    colorsn = colorsn + mplt.rcParams['axes.color_cycle'][3:4]
+    altmap = colors.ListedColormap(colorsn)
 
     domaincounts = df.groupby('domain')['domain'].count()
 
@@ -166,7 +171,7 @@ def pre2(df):
     # create relative values
     g =  g.astype(float).div(domaincounts, level='domain')
     res =  g.unstack().transpose()
-    plot = res.plot(kind='bar')
+    plot = res.plot(kind='bar', colormap=altmap)
 
     plot.set_ylabel("ratio of solved problems")
     plot.set_xlabel("domains")
@@ -175,19 +180,24 @@ def pre2(df):
     return plot
 
 
-def these2a(df):
+def counts(df):
 
     df = df[ df['expected'] != 'Open' ]
     cor = df[['domain', 'config', 'category']]
     a = cor.groupby(['config','category'])['category'].count()
     b = a.unstack('config')
+    error =  pd.DataFrame({ 'category': ['Error'], 'LEO 1.6 (e-1.8)': [0]}).groupby('category').max()
+
+    b = b.append(error)
+   
     plot = b.plot(kind='bar')
 
     style_barchart(plot)
     return plot
 
-def these2b(df, reference_conf, others):
+def timedelta(df, configs):
 
+    reference_conf, others = configs[0], configs[1:]
     df = df[ (df['category'] == 'Solved') ]
 
     # select median of each problem
@@ -203,9 +213,6 @@ def these2b(df, reference_conf, others):
         run = aggregated.ix[key]
         run = pd.DataFrame(run)
         
-        print run
-        print reftime
-
         run["ref.time"] = reftime
         run["ref.group"] = groups
         run["ref.delta"] = run['realtime'] - run['ref.time']
@@ -217,15 +224,49 @@ def these2b(df, reference_conf, others):
 
         print "Total delta", run['ref.delta'].sum()
 
+        plot.xaxis.grid(False)
+        plot.set_title("")
+        plot.xaxis.set_label_text("time used by %s" % reference_conf)
+        plot.yaxis.set_label_text("difference in s")
+        plt.suptitle("")
+
 #        run['ref.deltafaktor'] = run['realtime'] / run['ref.time']
 #        print run['ref.delta'].sum()
 #        run[run['ref.delta'] <= 0].hist("ref.deltafaktor")
-
-
     return plot
 
-def these4(df, configs):    
+def thesis2a(df):
+    return counts(df)
+
+def thesis2b(df, configs):
+    return timedelta(df, configs)
+
+def thesis3a(df):
+    return counts(df)
+
+def thesis3b(df, configs):
+    return timedelta(df, configs)
+
+def pre2(df):
+    colorsn = mplt.rcParams['axes.color_cycle'][0:1]
+    colorsn = colorsn + mplt.rcParams['axes.color_cycle'][3:4]
+    altmap = colors.ListedColormap(colorsn)
+
+    df = df[ df['expected'] != 'Open' ]
+    cor = df[['domain', 'config', 'category']]
+    a = cor.groupby(['config','category'])['category'].count()
+    b = a.unstack('config')
+    plot = b.plot(kind='bar', colormap=altmap)
+
+    style_barchart(plot)
+    return plot
+
+
+    
+
+def thesis4(df, configs):    
     df['problem'] = df['problem'].apply(lambda s: s.replace("^", "\^{}"))
+
     agg = df.groupby(['config','problem'])[['realtime', 'usertime', 'category']].max()
 
 
@@ -235,16 +276,15 @@ def these4(df, configs):
     data = pd.DataFrame({ configs[1] : df['usertime']})
     data[configs[0]] = ref['usertime']
     data = data[df['category'] == ref['category']]
-    data.sort(configs[0]).plot(kind='scatter')
-    
+    data = data.sort(configs[0])
+    data[configs].plot()
+
     print (data[configs[0]] - data[configs[1]]).sum()
 
 
 
-def visualize_groups(df, config):
-
-    df = df[(df['config'] == config) & ((df['category'] == "Timeout") |(df['category'] == "Solved") | (df['category'] == 'Unsolved'))]
-    df['realtime'] = df['realtime']
+def groupdistribution(df):
+    df['category'] = df.category.apply(lambda x: " Solved" if x == "Solved" else "Others")  
     df.hist('realtime', by=df['category'])
     plt.show()
 
@@ -295,7 +335,7 @@ def movements(df, confs):
             ).finish()
         
 
-def analyze_failed(df,configs):
+def analyse_failed(df,configs):
 
     states = df.groupby(['config', 'problem']).max()
     reference = states.xs(configs[0])
@@ -316,36 +356,30 @@ def analyze_failed(df,configs):
         t = s.mul(1.0, level='group').div(cats, level='group')
 
         u = u.unstack(level='changed')
-        s = s.unstack(level='changed')
         t = t.unstack(level='changed')
         
 
-        from matplotlib import colors
+
         altmap = colors.ListedColormap(mplt.rcParams['axes.color_cycle'][1:])
 
-#        p1 = style_barchart(s[True].plot(kind='bar', ax=ax1, rot=0))
+
         p2 = style_barchart(t[True].plot(kind='bar', ax=ax1, rot=0))
 
 
         br = run.groupby('expected')['expected'].count()
         u['Total'] = br 
-        print u
         u = u[True].div(br)
         p3 = style_barchart(u.plot(kind='bar', ax=ax2, colormap=altmap, rot=0))
 
-        #p1.legend().set_visible(False)
         p2.legend().set_visible(False)
         p3.legend().set_visible(False)
 
-        #p1.xaxis.set_label_text("")
         p2.xaxis.set_label_text("")        
         p3.xaxis.set_label_text("")
-        
 
         p2.set_ylim([0,1.1])
-        p3.set_ylim([0,1.1])
+        p3.set_ylim([0,0.5])
 
-        #p1.set_title("absolute")
         p2.set_title("by execution time")
         p3.set_title("by expected result")
         
@@ -373,7 +407,7 @@ def categorize(entry):
     return category
 
 
-def compare_metrics(df):
+def summainloop(df):
 
     timers = {
         "timers.mainloop.calculus" : "execute calculus rules",
@@ -399,6 +433,8 @@ def compare_metrics(df):
     plot.set_xlim((0,5))
     plot.legend(loc='right')
 
+    return style_barchart(plot)
+
 #    df['timers.mainloop.subpover'].hist()
 
 def asd(df, configs):
@@ -414,8 +450,9 @@ def asd(df, configs):
     data = pd.DataFrame({ "delta" : df['realtime']  - ref['realtime']  })
     data['timers.mainloop.subpover'] = ref['timers.mainloop.subpover']
     data['counters.mainloop.entry'] = ref['counters.mainloop.entry']
-    data.sort('delta').plot(y='delta',x='counters.mainloop.entry')
-    
+    plot = data.sort('delta').plot(y='delta',x='counters.mainloop.entry')
+
+
 #    print (data[configs[0]] - data[configs[1]]).sum()
 
 
@@ -423,11 +460,6 @@ def asd(df, configs):
     
 
 if __name__ == "__main__":
-
-    colors = [
-        "#E69F00", "#56B4E9", "#009E73", "#F0E442",
-        "#0072B2", "#D55E00", "#CC79A7"
-    ]
     
     if sys.argv[1] == "plot":
         candidates = sys.argv[2:]
@@ -443,27 +475,41 @@ if __name__ == "__main__":
     
     df['category'] = df.apply(categorize, axis=1)
 
+    
+    def plot(function, configs, show=False):
+        plot_df = df[ df['config'].isin(configs)]
+
+        if len(inspect.getargspec(function).args) == 2:
+            function(plot_df, configs)
+        else:
+            function(plot_df)
+
+        if show:
+            plt.show()
+
+        plt.savefig("%s.pgf" % function.__name__)
+        plt.clf()
 
 
-#    these2a(df)
-#    these2b(df, dr.configs[0], dr.configs[1:])
+    plot(mainloop,          ['LEO 1.6 (e-1.8)'])
+    plot(pre2,              ['LEO 1.6 (e-1.8)', 'LEO 1.6 (vampire-3.0)'])
+    plot(pre3,              ['LEO 1.6 (e-1.8)', 'LEO 1.6 (vampire-3.0)'])
+    plot(thesis2a,          ['LEO 1.6 (e-1.8)', 'LEO m6 (e-1.8)'])
+    plot(thesis2b,          ['LEO 1.6 (e-1.8)', 'LEO m6 (e-1.8)'])
+    plot(thesis3a,          ['LEO 1.6 (e-1.8)', 'LEO m6 (e-1.8)', 'LEO m6 (multiple provers)' ])
+    plot(thesis3b,          ['LEO m6 (e-1.8)', 'LEO m6 (multiple provers)'])
+    plot(groupdistribution, ['LEO m6 (e-1.8)'])
+    plot(thesis4,           ['LEO m6 (multiple provers)', 'LEO m6 modified  (multiple provers)'])
+    plot(analyse_failed,    ['LEO 1.6 (e-1.8)', 'LEO m6 (e-1.8)'])
+    plot(summainloop,       ['LEO 1.6 (e-1.8)'])
 
-#    these3a(df)
-#    these3b(df, dr.configs[0], dr.configs[1:])
 
-
-#    pre1(df)
-#    per2(df)
-#    visualize_groups(df, sys.argv[1])
-    analyze_failed(df, dr.configs)
-#    movements(df, dr.configs)
+#    analyze_failed(df, dr.configs)
 #    compare_metrics(df)
 
-#    these4(df, dr.configs)
+
 #    asd(df, dr.configs)
 
-    plt.show()
-    plt.savefig('file.pgf')
    
         
 

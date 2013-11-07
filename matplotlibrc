@@ -193,7 +193,7 @@ text.usetex         : True  # use latex for all text handling. The following fon
                        # used in regular text.
 
 ### AXES
-# default face and edge color, default tick sizes,
+# default face and edge color, default ticksizes,
 # default fontsizes for ticklabels, and so on.  See
 # http://matplotlib.sourceforge.net/api/axes_api.html#module-matplotlib.axes
 #axes.hold           : True    # whether to clear the axes by default on
@@ -204,14 +204,16 @@ axes.grid           : True     # display grid or not
 axes.titlesize      : x-large  # fontsize of the axes title
 axes.labelsize      : large    # fontsize of the x any y labels
 axes.labelcolor     : 555555
-axes.axisbelow      : False    # whether axis gridlines and ticks are below
+axes.axisbelow      : True     # whether axis gridlines and ticks are below
                                # the axes elements (lines, text, etc)
 #axes.formatter.limits : -7, 7 # use scientific notation if log10
                                # of the axis range is smaller than the
                                # first or larger than the second
 #axes.unicode_minus  : True    # use unicode for the minus symbol
                                # rather than hypen.  See http://en.wikipedia.org/wiki/Plus_sign#Plus_sign
-axes.color_cycle    : 348ABD, 7A68A6, A60628, 467821, CF4457, 188487, E24A33
+axes.color_cycle    : 2C374D, 1F7872, 72B095, DEDBA7, D13F31, ED8F66
+
+                    # 348ABD, 7A68A6, A60628, 467821, CF4457, 188487, 
                       # E24A33 : orange
                       # 7A68A6 : purple
                       # 348ABD : blue
@@ -234,7 +236,7 @@ axes.color_cycle    : 348ABD, 7A68A6, A60628, 467821, CF4457, 188487, E24A33
 ### TICKS
 # see http://matplotlib.sourceforge.net/api/axis_api.html#matplotlib.axis.Tick
 xtick.major.size     : 0      # major tick size in points
-xtick.minor.size     : 0      # minor tick size in points
+xtick.minor.size     : 0      # minor tick size axin points
 xtick.major.pad      : 6      # distance to major tick label in points
 xtick.minor.pad      : 6      # distance to the minor tick label in points
 xtick.color          : 555555      # color of the tick labels
